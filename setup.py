@@ -7,6 +7,36 @@ except ImportError:
     from distutils.core import setup
     kw = {'scripts': ['glue.py']}
 
+
+def check_requirements(requires):
+    """
+    :param requires:
+        List of requirements. If a list item is itself a list, this function checks if
+        any item of this list is already installed (in order) and uses this as requirement.
+        If non is installed the first item of the list is used.
+    :return: List of requirements
+    """
+    requirements = []
+    import pkg_resources
+    for line in requires:
+        if isinstance(line, list):
+            is_installed = False
+            for req in line:
+                try:
+                    pkg_resources.require(req)
+                    requirements.append(req)
+                except pkg_resources.DistributionNotFound:
+                    pass
+                except pkg_resources.VersionConflict:
+                    pass
+                else:
+                    is_installed = True
+            if not is_installed:
+                requirements.append(line[0])
+        else:
+            requirements.append(line)
+    return requirements
+
 setup(
     name='glue',
     version='0.3',
@@ -23,9 +53,9 @@ setup(
                       'sprite.'),
     py_modules=['glue'],
     platforms='any',
-    install_requires=[
-        'Pillow==1.7.8'
-    ],
+    install_requires=check_requirements([
+        ['Pillow==1.7.8', 'PIL==1.1.7'],
+    ]),
     classifiers=[
         'Development Status :: 4 - Beta',
         'Environment :: Web Environment',
