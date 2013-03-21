@@ -38,7 +38,7 @@ DEFAULT_SETTINGS = {
     'sprite_namespace': '%(sprite)s',
     'crop': False,
     'url': '',
-    'less': False,
+    'format': 'css',
     'force': False,
     'optipng': False,
     'html': False,
@@ -59,24 +59,50 @@ DEFAULT_SETTINGS = {
     'no_img': False,
     'cachebuster': False,
     'cachebuster-filename': False,
-    'global_template':
-        ('%(all_classes)s{background-image:url(\'%(sprite_url)s\');'
-         'background-repeat:no-repeat}\n'),
-    'each_template':
-        ('%(class_name)s{background-position:%(x)s %(y)s;'
-         'width:%(width)s;height:%(height)s;}\n'),
-    'ratio_template':
-        ('@media '
-         'only screen and (-webkit-min-device-pixel-ratio: %(ratio)s), '
-         'only screen and (min--moz-device-pixel-ratio: %(ratio)s), '
-         'only screen and (-o-min-device-pixel-ratio: %(ratio_fraction)s), '
-         'only screen and (min-device-pixel-ratio: %(ratio)s) {'
-         '%(all_classes)s{background-image:url(\'%(sprite_url)s\');'
-         '-webkit-background-size: %(width)s %(height)s;'
-         '-moz-background-size: %(width)s %(height)s;'
-         'background-size: %(width)s %(height)s;'
-         '}}\n')
+    'global_template': {
+        'css': '%(all_classes)s{background-image:url(\'%(sprite_url)s\');\nbackground-repeat:no-repeat}\n',
+        'less': '%(all_classes)s{background-image:url(\'%(sprite_url)s\');\nbackground-repeat:no-repeat}\n',
+        'sass': '%(all_classes)s\n  background-image: url(%(sprite_url)s)\n  background-repeat: no-repeat\n',
+    },
+    'each_template': {
+        'css': '%(class_name)s{background-position:%(x)s %(y)s;\nwidth:%(width)s;height:%(height)s;}\n',
+        'less': '%(class_name)s{background-position:%(x)s %(y)s;\nwidth:%(width)s;height:%(height)s;}\n',
+        'sass': '@mixin %(identifier)s\n  background-position: %(x)s %(y)s\n  width: %(width)s\n  '
+                'height: %(height)s\n%(class_name)s\n  @include %(identifier)s\n',
+    },
+    'ratio_template': {
+        'css': '@media '
+               'only screen and (-webkit-min-device-pixel-ratio: %(ratio)s), '
+               'only screen and (min--moz-device-pixel-ratio: %(ratio)s), '
+               'only screen and (-o-min-device-pixel-ratio: %(ratio_fraction)s), '
+               'only screen and (min-device-pixel-ratio: %(ratio)s) {'
+               '%(all_classes)s{background-image:url(\'%(sprite_url)s\');'
+               '-webkit-background-size: %(width)s %(height)s;'
+               '-moz-background-size: %(width)s %(height)s;'
+               'background-size: %(width)s %(height)s;'
+               '}}\n',
+        'less': '@media '
+               'only screen and (-webkit-min-device-pixel-ratio: %(ratio)s), '
+               'only screen and (min--moz-device-pixel-ratio: %(ratio)s), '
+               'only screen and (-o-min-device-pixel-ratio: %(ratio_fraction)s), '
+               'only screen and (min-device-pixel-ratio: %(ratio)s) {'
+               '%(all_classes)s{background-image:url(\'%(sprite_url)s\');'
+               '-webkit-background-size: %(width)s %(height)s;'
+               '-moz-background-size: %(width)s %(height)s;'
+               'background-size: %(width)s %(height)s;'
+               '}}\n',
+        'sass': '@media '
+                'only screen and (-webkit-min-device-pixel-ratio: %(ratio)s), '
+                'only screen and (min--moz-device-pixel-ratio: %(ratio)s), '
+                'only screen and (-o-min-device-pixel-ratio: %(ratio_fraction)s), '
+                'only screen and (min-device-pixel-ratio: %(ratio)s)\n  '
+                '%(all_classes)s\n    '
+                'background-image: url(%(sprite_url)s)\n    '
+                '-webkit-background-size: %(width)s %(height)s\n    '
+                '-moz-background-size: %(width)s %(height)s\n    '
+                'background-size: %(width)s %(height)s\n',
     }
+}
 
 TEST_HTML_TEMPLATE = """
 <html><head><title>Glue Sprite Test Html</title>
@@ -839,13 +865,16 @@ class Sprite(object):
                                      "the original file.")
                     save()
 
+    def get_template(self, which):
+        return getattr(self.config, which)[self.config.format]
+
     def save_css(self):
         """Create the CSS or LESS file for this sprite."""
 
         if self.config.no_css:
             return
 
-        format = 'less' if self.config.less else 'css'
+        format = self.config.format
         output_path = self.manager.output_path('css')
         filename = '%s.%s' % (self.filename, format)
         css_filename = os.path.join(output_path, filename)
@@ -879,10 +908,10 @@ class Sprite(object):
         class_names = [cn for cn in class_names if ':' not in cn or cn.rsplit(':')[0] not in class_names]
 
         # Join class names
-        class_names = ',\n'.join(class_names)
+        class_names = ', '.join(class_names)
 
         # add the global style for all the sprites for less bloat
-        template = self.config.global_template.decode('unicode-escape')
+        template = self.get_template("global_template").decode('unicode-escape')
         css_file.write(template % {'all_classes': class_names,
                                    'sprite_url': self.image_url()})
 
@@ -897,7 +926,7 @@ class Sprite(object):
             height = '%spx' % round_up((image.height / self.max_ratio) + image.vertical_padding)
             width = '%spx' % round_up((image.width / self.max_ratio) + image.horizontal_padding)
 
-            template = self.config.each_template.decode('unicode-escape')
+            template = self.get_template("each_template").decode('unicode-escape')
             css_file.write(template % {'class_name': '.%s' % image.class_name,
                                        'identifier': image.class_name,
                                        'sprite_url': self.image_url(),
@@ -920,7 +949,7 @@ class Sprite(object):
                                 sprite_url=self.image_url(ratio),
                                 all_classes=class_names,
                                 **dict(canvas_size))
-                    css_file.write(self.config.ratio_template % data)
+                    css_file.write(self.get_template("ratio_template") % data)
         css_file.close()
 
     def save_html(self):
@@ -932,7 +961,7 @@ class Sprite(object):
         html_filename = os.path.join(output_path, filename)
 
         # CSS output format
-        format = 'less' if self.config.less else 'css'
+        format = self.config.format
 
         html_file = open(html_filename, 'w')
 
@@ -1370,8 +1399,8 @@ def main():
             help="Follow symbolic links.")
     parser.add_option("-c", "--crop", dest="crop", action='store_true',
             help="crop images removing unnecessary transparent margins")
-    parser.add_option("-l", "--less", dest="less", action='store_true',
-            help="generate output stylesheets as .less instead of .css")
+    parser.add_option("--format", dest="format", default='css',
+            help="set output format to less, sass or css")
     parser.add_option("-u", "--url", dest="url",
             help="prepend this url to the sprites filename")
     parser.add_option("-q", "--quiet", dest="quiet", action='store_true',
