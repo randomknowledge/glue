@@ -39,7 +39,7 @@ def check_requirements(requires):
 
 setup(
     name='glue',
-    version='0.3_rk',
+    version='0.3-rk',
     url='http://github.com/randomknowledge/glue',
     license='BSD',
     author='Jorge Bastida',
