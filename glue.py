@@ -986,7 +986,7 @@ class Sprite(object):
             return '%s_%s' % (self.name, self.hash[:6])
         return self.name
 
-    def image_path(self, ratio=1, full=True):
+    def image_path(self, ratio=1, full=True, route=False):
         reference = self.__get_reference(ratio)
         """Return the output path for the image file.
         If full, prepend the img output path, if not only return the filename.
@@ -994,7 +994,7 @@ class Sprite(object):
         """
         filename = '%s%s.png' % (self.filename, reference)
         if full:
-            return os.path.join(self.manager.output_path('img'), filename)
+            return os.path.join(self.manager.output_path('img', route=route), filename)
         return filename
 
     def __get_reference(self, ratio):
@@ -1022,7 +1022,8 @@ class Sprite(object):
             image_path = self.image_path(ratio, full=False)
             url = os.path.join(self.config.url, image_path)
         else:
-            image_path = self.image_path(ratio)
+            #route_img_dir
+            image_path = self.image_path(ratio, full=True, route=True)
             url = os.path.relpath(image_path, self.manager.output_path('css'))
             url = os.path.normpath(url)
 
@@ -1032,7 +1033,6 @@ class Sprite(object):
 
         if self.config.cachebuster:
             url = "%s?%s" % (url, self.hash[:6])
-
         return url
 
     @cached_property
@@ -1175,13 +1175,15 @@ class BaseManager(object):
             if sprite.manager.config.html:
                 sprite.save_html()
 
-    def output_path(self, format):
+    def output_path(self, format, route=False):
         """Return the path where all the generated files will be saved.
 
         :param format: File format.
         """
         if format == 'css' and self.config.css_dir:
             sprite_output_path = self.config.css_dir
+        elif route and format == 'img' and self.config.route_img_dir:
+            sprite_output_path = self.config.route_img_dir
         elif format == 'img' and self.config.img_dir:
             sprite_output_path = self.config.img_dir
         else:
@@ -1427,6 +1429,8 @@ def main():
             help="output directory for css files")
     group.add_option("--img", dest="img_dir", default='', metavar='DIR',
             help="output directory for img files")
+    group.add_option("--route-img", dest="route_img_dir", default='', metavar='DIR',
+            help="route output directory for img files to this dir")
     group.add_option("--html", dest="html", action="store_true",
             help="generate test html file using the sprite image and CSS.")
     group.add_option("--no-css", dest="no_css", action="store_true",
