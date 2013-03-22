@@ -986,7 +986,7 @@ class Sprite(object):
             return '%s_%s' % (self.name, self.hash[:6])
         return self.name
 
-    def image_path(self, ratio=1, full=True, route=False):
+    def image_path(self, ratio=1, full=True):
         reference = self.__get_reference(ratio)
         """Return the output path for the image file.
         If full, prepend the img output path, if not only return the filename.
@@ -994,7 +994,7 @@ class Sprite(object):
         """
         filename = '%s%s.png' % (self.filename, reference)
         if full:
-            return os.path.join(self.manager.output_path('img', route=route), filename)
+            return os.path.join(self.manager.output_path('img'), filename)
         return filename
 
     def __get_reference(self, ratio):
@@ -1022,10 +1022,17 @@ class Sprite(object):
             image_path = self.image_path(ratio, full=False)
             url = os.path.join(self.config.url, image_path)
         else:
-            #route_img_dir
-            image_path = self.image_path(ratio, full=True, route=True)
-            url = os.path.relpath(image_path, self.manager.output_path('css'))
-            url = os.path.normpath(url)
+            image_path = self.image_path(ratio, full=True)
+            if self.config.route_img_dir:
+                url = os.path.normpath(
+                    os.path.join(
+                        self.config.route_img_dir,
+                        os.path.basename(image_path),
+                    )
+                )
+            else:
+                url = os.path.relpath(image_path, self.manager.output_path('css'))
+                url = os.path.normpath(url)
 
         # Fix css urls on Windows
         if os.name == 'nt':
@@ -1175,15 +1182,13 @@ class BaseManager(object):
             if sprite.manager.config.html:
                 sprite.save_html()
 
-    def output_path(self, format, route=False):
+    def output_path(self, format):
         """Return the path where all the generated files will be saved.
 
         :param format: File format.
         """
         if format == 'css' and self.config.css_dir:
             sprite_output_path = self.config.css_dir
-        elif route and format == 'img' and self.config.route_img_dir:
-            sprite_output_path = self.config.route_img_dir
         elif format == 'img' and self.config.img_dir:
             sprite_output_path = self.config.img_dir
         else:
