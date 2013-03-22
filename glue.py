@@ -62,12 +62,13 @@ DEFAULT_SETTINGS = {
     'global_template': {
         'css': '%(all_classes)s{background-image:url(\'%(sprite_url)s\');\nbackground-repeat:no-repeat}\n',
         'less': '%(all_classes)s{background-image:url(\'%(sprite_url)s\');\nbackground-repeat:no-repeat}\n',
-        'sass': '%(all_classes)s\n  background-image: url(%(sprite_url)s)\n  background-repeat: no-repeat\n',
+        'sass': '',
     },
     'each_template': {
         'css': '%(class_name)s{background-position:%(x)s %(y)s;\nwidth:%(width)s;height:%(height)s;}\n',
         'less': '%(class_name)s{background-position:%(x)s %(y)s;\nwidth:%(width)s;height:%(height)s;}\n',
-        'sass': '@mixin %(identifier)s\n  background-position: %(x)s %(y)s\n  width: %(width)s\n  '
+        'sass': '@mixin %(identifier)s\n  background-image: url(%(sprite_url)s)\n  background-repeat: no-repeat\n  '
+                'background-position: %(x)s %(y)s\n  width: %(width)s\n  '
                 'height: %(height)s\n%(class_name)s\n  @include %(identifier)s\n',
     },
     'ratio_template': {
