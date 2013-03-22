@@ -39,8 +39,8 @@ def check_requirements(requires):
 
 setup(
     name='glue',
-    version='0.3',
-    url='http://github.com/jorgebastida/glue',
+    version='0.3_rk',
+    url='http://github.com/randomknowledge/glue',
     license='BSD',
     author='Jorge Bastida',
     author_email='me@jorgebastida.com',
